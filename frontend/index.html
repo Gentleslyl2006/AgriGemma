@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+<title>AgriGemma — Farm advice, no signal needed</title>
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#3E2A1E" />
+<style>
+  :root {
+    --soil: #3E2A1E;
+    --leaf: #4C7A3E;
+    --leaf-dark: #3A5C2F;
+    --dust: #F2E8D8;
+    --clay: #C9762F;
+    --charcoal: #2B2320;
+    --warn: #A6402F;
+    --card: #FFFDF8;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--dust);
+    color: var(--charcoal);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  header {
+    width: 100%;
+    background: var(--soil);
+    color: var(--dust);
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  header .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  header .brand svg { width: 26px; height: 26px; flex-shrink: 0; }
+
+  .status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #D8C9A8;
+  }
+
+  .status .dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--leaf);
+    box-shadow: 0 0 0 3px rgba(76,122,62,0.25);
+  }
+
+  main {
+    width: 100%;
+    max-width: 480px;
+    padding: 28px 20px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+  }
+
+  .prompt-line {
+    text-align: center;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--soil);
+    margin: 4px 0 28px;
+    line-height: 1.4;
+  }
+
+  /* Signature element: leaf-shaped mic button */
+  .mic-wrap {
+    position: relative;
+    width: 168px;
+    height: 168px;
+    margin-bottom: 14px;
+  }
+
+  .mic-btn {
+    width: 100%;
+    height: 100%;
+    border: none;
+    cursor: pointer;
+    background: var(--leaf);
+    clip-path: path('M84 4C130 4 164 44 164 88C164 132 128 164 84 164C40 164 4 132 4 88C4 52 30 20 62 8C69 5.5 76.5 4 84 4Z');
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s ease, background 0.2s ease;
+    touch-action: manipulation;
+  }
+
+  .mic-btn:active { transform: scale(0.94); }
+  .mic-btn.listening { background: var(--clay); }
+
+  .mic-btn svg { width: 56px; height: 56px; }
+
+  .mic-wrap.listening::before {
+    content: "";
+    position: absolute;
+    inset: -10px;
+    border-radius: 50%;
+    border: 3px solid var(--clay);
+    animation: pulse 1.4s ease-out infinite;
+  }
+
+  @keyframes pulse {
+    0% { transform: scale(0.9); opacity: 0.8; }
+    100% { transform: scale(1.25); opacity: 0; }
+  }
+
+  .mic-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--leaf-dark);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 26px;
+  }
+
+  .text-fallback {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+    margin-bottom: 22px;
+  }
+
+  .text-fallback input {
+    flex: 1;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 2px solid #DED0B0;
+    background: var(--card);
+    font-size: 16px;
+    color: var(--charcoal);
+  }
+
+  .text-fallback input:focus {
+    outline: 3px solid var(--leaf);
+    outline-offset: 1px;
+    border-color: var(--leaf);
+  }
+
+  .text-fallback button {
+    padding: 0 20px;
+    border-radius: 12px;
+    border: none;
+    background: var(--soil);
+    color: var(--dust);
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+  }
+  .text-fallback button:focus-visible,
+  .mic-btn:focus-visible {
+    outline: 3px solid var(--soil);
+    outline-offset: 3px;
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 24px;
+  }
+
+  .chip {
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: var(--card);
+    border: 2px solid #DED0B0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--soil);
+    cursor: pointer;
+  }
+  .chip:hover { border-color: var(--leaf); }
+
+  .response-card {
+    width: 100%;
+    background: var(--card);
+    border-radius: 16px;
+    padding: 20px;
+    border-left: 6px solid var(--leaf);
+    box-shadow: 0 2px 10px rgba(62,42,30,0.08);
+    display: none;
+  }
+
+  .response-card.show { display: block; }
+  .response-card.warn { border-left-color: var(--warn); }
+
+  .response-card .you-asked {
+    font-size: 13px;
+    font-weight: 700;
+    color: #8A7B5E;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+  }
+
+  .response-card .question-text {
+    font-size: 15px;
+    color: var(--soil);
+    margin-bottom: 14px;
+    font-style: italic;
+  }
+
+  .response-card .answer-text {
+    font-size: 17px;
+    line-height: 1.55;
+    color: var(--charcoal);
+  }
+
+  .response-card .flag {
+    margin-top: 14px;
+    padding: 10px 12px;
+    background: #F6E4DC;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--warn);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .listen-btn {
+    margin-top: 14px;
+    background: none;
+    border: 2px solid var(--leaf);
+    color: var(--leaf-dark);
+    font-weight: 700;
+    font-size: 14px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+
+  .loading {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    color: var(--soil);
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 16px;
+  }
+  .loading.show { display: flex; }
+
+  .loading .spinner {
+    width: 16px; height: 16px;
+    border: 3px solid #DED0B0;
+    border-top-color: var(--leaf);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C7 2 4 6 4 11c0 5 4 9 8 11 4-2 8-6 8-11 0-5-3-9-8-9Z" fill="#F2E8D8"/><path d="M12 6v10M12 6c-2 1-3 3-3 5M12 6c2 1 3 3 3 5" stroke="#4C7A3E" stroke-width="1.6" stroke-linecap="round"/></svg>
+    AgriGemma
+  </div>
+  <div class="status" id="statusPill">
+    <span class="dot"></span>
+    <span id="statusText">Ready — works offline</span>
+  </div>
+</header>
+
+<main>
+  <p class="prompt-line">Ask about your crops or animals.<br>Tap the leaf, or type below.</p>
+
+  <div class="mic-wrap" id="micWrap">
+    <button class="mic-btn" id="micBtn" aria-label="Speak your question">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#F2E8D8" stroke-width="2" stroke-linecap="round">
+        <rect x="9" y="2" width="6" height="12" rx="3" fill="#F2E8D8" stroke="none"/>
+        <path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>
+      </svg>
+    </button>
+  </div>
+  <div class="mic-label" id="micLabel">Tap to speak</div>
+
+  <form class="text-fallback" id="textForm">
+    <input type="text" id="textInput" placeholder="e.g. my chicken dey limp" />
+    <button type="submit">Ask</button>
+  </form>
+
+  <div class="chips">
+    <button type="button" class="chip" data-q="My cassava leaves are turning yellow, why?">🥔 Cassava leaves</button>
+    <button type="button" class="chip" data-q="My chicken is limping and not eating, what should I do?">🐔 Sick chicken</button>
+    <button type="button" class="chip" data-q="My maize leaves have brown spots, what is wrong?">🌽 Maize spots</button>
+    <button type="button" class="chip" data-q="My goat has not eaten in two days, what should I do?">🐐 Goat not eating</button>
+  </div>
+
+  <div class="loading" id="loading">
+    <span class="spinner"></span> Thinking...
+  </div>
+
+  <div class="response-card" id="responseCard">
+    <div class="you-asked">You asked</div>
+    <div class="question-text" id="questionText"></div>
+    <div class="answer-text" id="answerText"></div>
+    <div class="flag" id="flagBox" style="display:none;">
+      ⚠️ <span id="flagText">This sounds serious — please see an extension officer or vet if you can.</span>
+    </div>
+    <button class="listen-btn" id="listenBtn">🔊 Read this aloud</button>
+  </div>
+</main>
+
+<script>
+  // ---- Config ----
+  const BACKEND_URL = "http://localhost:8000/ask"; // local AgriGemma backend running Gemma 4
+
+  // ---- Elements ----
+  const micBtn = document.getElementById("micBtn");
+  const micWrap = document.getElementById("micWrap");
+  const micLabel = document.getElementById("micLabel");
+  const textForm = document.getElementById("textForm");
+  const textInput = document.getElementById("textInput");
+  const responseCard = document.getElementById("responseCard");
+  const questionText = document.getElementById("questionText");
+  const answerText = document.getElementById("answerText");
+  const flagBox = document.getElementById("flagBox");
+  const flagText = document.getElementById("flagText");
+  const loading = document.getElementById("loading");
+  const listenBtn = document.getElementById("listenBtn");
+  const statusText = document.getElementById("statusText");
+
+  // ---- Ask Gemma via local backend ----
+  async function askAgriGemma(question) {
+    questionText.textContent = question;
+    answerText.textContent = "";
+    flagBox.style.display = "none";
+    responseCard.classList.remove("show", "warn");
+    loading.classList.add("show");
+
+    try {
+      const res = await fetch(BACKEND_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question })
+      });
+      const data = await res.json();
+
+      answerText.textContent = data.answer;
+      if (data.needs_expert) {
+        flagBox.style.display = "flex";
+        if (data.flag_reason) flagText.textContent = data.flag_reason;
+        responseCard.classList.add("warn");
+      }
+      responseCard.classList.add("show");
+    } catch (err) {
+      answerText.textContent =
+        "Could not reach the AgriGemma engine. Make sure the local AgriGemma service is running on this device.";
+      responseCard.classList.add("show", "warn");
+    } finally {
+      loading.classList.remove("show");
+    }
+  }
+
+  // ---- Text input ----
+  textForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const q = textInput.value.trim();
+    if (!q) return;
+    askAgriGemma(q);
+    textInput.value = "";
+  });
+
+  // ---- Quick topic chips ----
+  document.querySelectorAll(".chip").forEach((chip) => {
+    chip.addEventListener("click", () => askAgriGemma(chip.dataset.q));
+  });
+
+  // ---- Voice input (Web Speech API, on-device in supporting browsers) ----
+  let recognition = null;
+  let listening = false;
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (SpeechRecognition) {
+    recognition = new SpeechRecognition();
+    recognition.lang = "en-NG";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      listening = true;
+      micWrap.classList.add("listening");
+      micBtn.classList.add("listening");
+      micLabel.textContent = "Listening...";
+    };
+
+    recognition.onend = () => {
+      listening = false;
+      micWrap.classList.remove("listening");
+      micBtn.classList.remove("listening");
+      micLabel.textContent = "Tap to speak";
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      askAgriGemma(transcript);
+    };
+
+    recognition.onerror = () => {
+      micLabel.textContent = "Didn't catch that — tap to try again";
+    };
+  } else {
+    micLabel.textContent = "Voice not supported — type below";
+    micBtn.disabled = true;
+  }
+
+  micBtn.addEventListener("click", () => {
+    if (!recognition) return;
+    if (listening) {
+      recognition.stop();
+    } else {
+      recognition.start();
+    }
+  });
+
+  // ---- Read aloud (on-device TTS) ----
+  listenBtn.addEventListener("click", () => {
+    if (!("speechSynthesis" in window)) return;
+    const utter = new SpeechSynthesisUtterance(answerText.textContent);
+    utter.rate = 0.95;
+    speechSynthesis.speak(utter);
+  });
+
+  // ---- Service worker for offline app shell ----
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+</script>
+</body>
+</html>

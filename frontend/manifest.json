@@ -1,0 +1,10 @@
+{
+  "name": "AgriGemma",
+  "short_name": "AgriGemma",
+  "description": "Offline voice and text farming advice for smallholder farmers, powered by Gemma 4",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#F2E8D8",
+  "theme_color": "#3E2A1E",
+  "icons": []
+}
